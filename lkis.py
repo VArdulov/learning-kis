@@ -18,7 +18,7 @@ from torch import (
 )
 # from torch.utils.data import Dataset, DataLoader
 from torch.nn import Module, Linear, PReLU, BatchNorm1d
-
+from torch.nn.functional import mse_loss
 # from chainer import link
 # from chainer import Variable
 # from chainer import Chain
@@ -106,8 +106,12 @@ class DelayPairDataLoader():
         tau = self.n_lag
         k = self.dim_delay
         a = self.a_s[i]
-        b = i - sum(self.lens[0:a])
-        return (self.values[a][b:b + (k - 1) * tau + 1:tau], self.values[a][b + 1:b + (k - 1) * tau + 2:tau])
+        start = i - sum(self.lens[0:a])
+        end = start + (k-1) * tau + 1
+        return (
+            self.values[a][start:end:tau],
+            self.values[a][start + 1:end + 1:tau]
+        )
 
 
 class Encoder(Module):
@@ -177,30 +181,22 @@ class Network(Module):
         return g0, g1, h0, h1
 
 
-# class Loss(Chain):
-#     def __init__(self, phi, net, alpha=1.0, decay=0.9):
-#         super(Loss, self).__init__(
-#             phi=phi,
-#             net=net
-#         )
-#         self.add_persistent('alpha', alpha)
-#         self.add_persistent('decay', decay)
-#
-#     def __call__(self, y0, y1, train=True):
-#         g0, g1, h0, h1 = self.net(y0, y1, phi=self.phi, train=train)
-#
-#         loss1 = F.mean_squared_error(F.linear(g0, ls_solution(g0, g1)), g1)
-#         loss2 = F.mean_squared_error(h0, F.transpose(y0, axes=(1, 0, 2))[-1])
-#         loss3 = F.mean_squared_error(h1, F.transpose(y1, axes=(1, 0, 2))[-1])
-#         loss = loss1 + self.alpha * 0.5 * (loss2 + loss3)
-#
-#         reporter_module.report({
-#             'loss': loss,
-#             'loss_kpm': loss1,
-#             'loss_rec': 0.5 * (loss2 + loss3)
-#         }, self.net)
-#
-#         return loss
+class CombinedLoss():
+    def __init__(self, phi, net, alpha=1.0, decay=0.9):
+        self.phi = phi
+        self.net = net
+        self.alpha = alpha
+        self.decay = decay
+
+    def __call__(self, y0, y1):
+        g0, g1, h0, h1 = self.net(y0, y1, phi=self.phi)
+        g1_pred = matmul(ls_solution(g0, g1), g0)
+        loss1 = mse_loss(g1_pred, g1)
+        loss2 = mse_loss(h0, transpose(y0, axes=(1, 0, 2))[-1]) # reconstruction loss
+        loss3 = mse_loss(h1, F.transpose(y1, axes=(1, 0, 2))[-1])
+        loss = loss1 + self.alpha * 0.5 * (loss2 + loss3)
+
+        return loss
 
 
 # # ==========

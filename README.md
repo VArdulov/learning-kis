@@ -88,6 +88,7 @@ The result can be inspected using `matlab/exp_lorenz.m`
 ## Author
 
 *  **Naoya Takeishi** - [http://www.naoyatakeishi.com/](http://www.naoyatakeishi.com/)
+* **Victor Ardulov** - [https://Vardulov.github.io](https://Vardulov.github.io)
 
 ## License
 
