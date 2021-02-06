@@ -1,18 +1,27 @@
 # LKIS
 
-This is a demo implementation of the following paper.
+This is a reimplementation of the following paper using PyTorch 1.7 
 
 Naoya Takeishi, Yoshinobu Kawahara, and Takehisa Yairi, "Learning Koopman Invariant Subspaces for Dynamic Mode Decomposition," in *Advances in Neural Information Processing Systems (Proc. of NIPS)*, vol. 30, pp. 1130-1140, 2017.
 
 arXiv preprint: <https://arxiv.org/abs/1710.04340>
 
-## Prerequisite
+## Requirements
+This code base was built with the following libraries and environments:
+1. `python==3.8.5`
+2. `numpy==1.20.0`
+3. `scipy==1.6.0`
+4. `torch==1.7.1`
+5. `pandas==1.2.1`
 
-- python 3.5.2 or later
-- numpy 1.12.1 or later
-- scipy 0.19.0 or later
-- chainer 1.23.0
+For visualizations we'll use :
+1. `matplotlib==3.3.4`
+2. `seaborn==0.11.1`
 
+This environment can be installed easily with the following command:
+```bash
+pip install -r requirements.txt
+```
 ## Files
 
 * `lkis.py`
