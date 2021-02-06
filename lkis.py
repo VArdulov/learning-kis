@@ -41,7 +41,7 @@ def ls_solution(g0, g1):
     g0_t = transpose(g0)
     if g0.shape[0] >= g0.shape[1]:
         g0_H = inverse(matmul(g0_t, g0))
-        g0_pinv = matmul(g0_H, g0t)
+        g0_pinv = matmul(g0_H, g0_t)
     else:
         g0_H = inverse(matmul(g0, g0_t))
         g0_pinv = matmul(g0_t, g0_H)
@@ -192,8 +192,8 @@ class CombinedLoss():
         g0, g1, h0, h1 = self.net(y0, y1, phi=self.phi)
         g1_pred = matmul(ls_solution(g0, g1), g0)
         loss1 = mse_loss(g1_pred, g1)
-        loss2 = mse_loss(h0, transpose(y0, axes=(1, 0, 2))[-1]) # reconstruction loss
-        loss3 = mse_loss(h1, F.transpose(y1, axes=(1, 0, 2))[-1])
+        loss2 = mse_loss(h0, transpose(y0, dim0=0, dim1=1)[-1]) # reconstruction loss
+        loss3 = mse_loss(h1, transpose(y1, dim0=0, dim1=1)[-1])
         loss = loss1 + self.alpha * 0.5 * (loss2 + loss3)
 
         return loss
