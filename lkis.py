@@ -11,18 +11,24 @@
 
 import numpy as np
 from scipy import linalg
-from torch import matmul, inverse, transpose
+from torch import (
+    matmul,
+    inverse,
+    transpose
+)
+# from torch.utils.data import Dataset, DataLoader
 from torch.nn import Module, Linear, PReLU, BatchNorm1d
-from chainer import link
-from chainer import Variable
-from chainer import Chain
-from chainer import dataset
-from chainer import reporter as reporter_module
-from chainer import training
-from chainer import initializers
-from chainer.training import extensions
-import chainer.functions as F
-import chainer.links as L
+
+# from chainer import link
+# from chainer import Variable
+# from chainer import Chain
+# from chainer import dataset
+# from chainer import reporter as reporter_module
+# from chainer import training
+# from chainer import initializers
+# from chainer.training import extensions
+# import chainer.functions as F
+# import chainer.links as L
 
 
 # ==========
@@ -43,8 +49,6 @@ def ls_solution(g0, g1):
     K = transpose(matmul(g0_pinv, g1))
     return K
 
-
-# ==========
 
 def dmd(y0, y1, eps=1e-6):
     """
@@ -80,31 +84,30 @@ def dmd(y0, y1, eps=1e-6):
         z[:, i] = z[:, i] / np.dot(w[:, i].conj(), z[:, i])
     return lam, w, z
 
+class DelayPairDataLoader():
+    def __init__(self, values, dim_delay, n_lag=1):
+        if isinstance(values, list):
+            self.values = values
+        else:
+            self.values = [values, ]
+        self.lens = tuple(value.shape[0] - (dim_delay - 1) * n_lag - 1 for value in self.values)
+        self.a_s = [0 for i in range(sum(self.lens))]
+        for i in range(sum(self.lens)):
+            for j in range(len(self.values)):
+                if i >= sum(self.lens[0:j]):
+                    self.a_s[i] = j
+        self.dim_delay = dim_delay
+        self.n_lag = n_lag
 
-# class DelayPairDataset(dataset.DatasetMixin):
-#     def __init__(self, values, dim_delay, n_lag=1):
-#         if isinstance(values, list):
-#             self.values = values
-#         else:
-#             self.values = [values, ]
-#         self.lens = tuple(value.shape[0] - (dim_delay - 1) * n_lag - 1 for value in self.values)
-#         self.a_s = [0 for i in range(sum(self.lens))]
-#         for i in range(sum(self.lens)):
-#             for j in range(len(self.values)):
-#                 if i >= sum(self.lens[0:j]):
-#                     self.a_s[i] = j
-#         self.dim_delay = dim_delay
-#         self.n_lag = n_lag
-#
-#     def __len__(self):
-#         return sum(self.lens)
-#
-#     def get_example(self, i):
-#         tau = self.n_lag
-#         k = self.dim_delay
-#         a = self.a_s[i]
-#         b = i - sum(self.lens[0:a])
-#         return (self.values[a][b:b + (k - 1) * tau + 1:tau], self.values[a][b + 1:b + (k - 1) * tau + 2:tau])
+    def __len__(self):
+        return sum(self.lens)
+
+    def get_example(self, i):
+        tau = self.n_lag
+        k = self.dim_delay
+        a = self.a_s[i]
+        b = i - sum(self.lens[0:a])
+        return (self.values[a][b:b + (k - 1) * tau + 1:tau], self.values[a][b + 1:b + (k - 1) * tau + 2:tau])
 
 
 class Encoder(Module):
