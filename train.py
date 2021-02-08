@@ -15,8 +15,11 @@ import time
 
 from lkis import TimeSeriesBatchMaker, KoopmanInvariantSubspaceLearner
 from losses import combined_loss
-from torch import device
+from torch import device, save, manual_seed
 from torch.optim import SGD
+
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # -- Parse arguments
 t = time.time()
@@ -27,16 +30,18 @@ parser.add_argument("--epochs", "-e", type=int, default=1000, help="number of ep
 parser.add_argument("--num-batches", "-b", type=int, default=1, help="how many batchs for break the data up into")
 parser.add_argument("--gpu", action="store_true", default=False, help="use a GPU or no")
 parser.add_argument("--intermediate-observable", "-i", type=int, default=-1, help="intermediate dimensional observation space")
-parser.add_argument("--save-model", "-m", type=str, default="./", help="where to save you model")
-parser.add_argument("--save-training-plot", "-p", type=str, default="./", help="where to save plotting")
+parser.add_argument("--save-model", "-m", action="store_true", default=False, help="whether or not you want the model saved to $name$.torch.mdl")
+parser.add_argument("--save-training-plot", "-p", action="store_true", default=False, help="where to save plotting")
 parser.add_argument("--max-lag", "-l", type=int, default=-1, help="maximum_lag")
 parser.add_argument("--state-space", "-s", type=int, default=1, help="dimensionality of the underlying state space")
 parser.add_argument("--alpha", "-a", type=float, default=1.0, help="value to score the reconstruction loss by")
 parser.add_argument("--learning-rate", "-r", type=float, default=0.001, help="Optimizer learning rate")
 parser.add_argument("--validation-data-path", "-v", type=str, default="")
+
 if __name__ == "__main__":
     # grab the command line arguments
     cli_args = parser.parse_args()
+    manual_seed(216)
 
     # find and load the training data
     data_path = cli_args.data_path
@@ -66,7 +71,7 @@ if __name__ == "__main__":
     )
     if validate:
         val_batch_iterator = TimeSeriesBatchMaker(
-            y = data_val,
+            y=data_val,
             max_lag=delay
         )
 
@@ -107,9 +112,6 @@ if __name__ == "__main__":
 
             loss += batch_loss.item()
 
-        # compute the epoch training loss
-        # loss = loss / (cli_args.num_batches * samples_per_batch)
-
         # display the epoch training loss
         print(f"epoch : {epoch + 1}/{cli_args.epochs}, loss = {loss:.6f}")
         losses.append(loss)
@@ -117,7 +119,7 @@ if __name__ == "__main__":
         if validate:
             y_time_delayed_val, y_true = next(val_batch_iterator)
             if cli_args.gpu:
-                time_delayed_ys.to(device)
+                y_time_delayed_val.to(device)
                 y_true.to(device)
 
             g_pred, y_pred = lkis(y_time_delayed_val)
@@ -128,3 +130,15 @@ if __name__ == "__main__":
             val_loss = batch_loss.item()
             print(f"\tval-loss  = {val_loss:.6f}")
             val_losses.append(val_loss)
+
+    if cli_args.save_model:
+        save(lkis, f"{cli_args.name}.torch.mdl")
+
+    if cli_args.save_training_plot:
+        sns.lineplot(x=list(range(cli_args.epochs)), y=losses, label="training loss")
+        if validate:
+            sns.lineplot(x=list(range(cli_args.epochs)), y=val_losses, label="validation loss")
+        plt.xlabel("Epochs")
+        plt.ylabel("Combined Reconstruction and DMD Loss")
+        plt.title(f"Training Loss for {cli_args.name}")
+        plt.savefig(f"{cli_args.name}-training-loss.png")

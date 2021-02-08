@@ -10,9 +10,6 @@ from logging import warning
 
 class TimeSeriesBatchMaker(object):
     def __init__(self, y:np.ndarray, max_lag:int = 1, batch_size:int = 0) -> None:
-        print(y.shape[0])
-        print(max_lag)
-        print(batch_size)
         self.maximum_lag = min(max_lag, y.shape[0]-1)
         self.start_ = self.maximum_lag
         self.batch_size = y.shape[0] if batch_size == 0 else min(batch_size, y.shape[0] - max_lag)
@@ -98,10 +95,15 @@ class KoopmanInvariantSubspaceLearner(Module):
             delay=delay,
             latent_dim=latent_dim
         )
+
         self.intermediate_observable_dim = intermediate_observable if intermediate_observable > 0 else latent_dim
+
         if intermediate_observable <= 0:
-            warning(f"Overwriting intermediate_observable dimension from {intermediate_observable} "
-                  f"to {self.intermediate_observable_dim}")
+            warning(
+                f"Overwriting intermediate_observable dimension from {intermediate_observable} "
+                f"to {self.intermediate_observable_dim}"
+            )
+
         self.observer = Observer(latent_dim=latent_dim, observable_dim=self.intermediate_observable_dim)
         self.reconstructor = Observer(latent_dim=self.intermediate_observable_dim, observable_dim=observable_dim)
 
