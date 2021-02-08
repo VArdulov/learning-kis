@@ -33,7 +33,7 @@ parser.add_argument("--max-lag", "-l", type=int, default=-1, help="maximum_lag")
 parser.add_argument("--state-space", "-s", type=int, default=1, help="dimensionality of the underlying state space")
 parser.add_argument("--alpha", "-a", type=float, default=1.0, help="value to score the reconstruction loss by")
 parser.add_argument("--learning-rate", "-r", type=float, default=0.001, help="Optimizer learning rate")
-
+parser.add_argument("--validation-data-path", "-v", type=str, default="")
 if __name__ == "__main__":
     # grab the command line arguments
     cli_args = parser.parse_args()
@@ -45,6 +45,12 @@ if __name__ == "__main__":
     if len(data_train.shape) == 1:
         data_train = data_train.reshape(-1, 1)
     print(f"Loaded a dataset with dimension: {data_train.shape}")
+    validate = cli_args.validation_data_path != ""
+    data_val = None
+    if validate:
+        data_path = cli_args.validation_data_path
+        print(f"Loading validation data from {data_path}")
+        data_val = np.load(data_path)
 
     # process the delay either set by the user or is set to one 10th of the data
     delay = cli_args.max_lag if cli_args.max_lag > 0 else (data_train.shape[0] // 10)
@@ -58,6 +64,11 @@ if __name__ == "__main__":
         batch_size=samples_per_batch,
         max_lag=delay
     )
+    if validate:
+        val_batch_iterator = TimeSeriesBatchMaker(
+            y = data_val,
+            max_lag=delay
+        )
 
     # construct the end-to-end model
     lkis = KoopmanInvariantSubspaceLearner(
@@ -73,6 +84,7 @@ if __name__ == "__main__":
     # initialize the optimizer
     optimizer = SGD(lkis.parameters(), lr=cli_args.learning_rate)
     losses = []
+    val_losses = []
     for epoch in range(cli_args.epochs):
         loss = 0
         for b in range(cli_args.num_batches):
@@ -96,8 +108,23 @@ if __name__ == "__main__":
             loss += batch_loss.item()
 
         # compute the epoch training loss
-        loss = loss / (cli_args.num_batches * samples_per_batch)
+        # loss = loss / (cli_args.num_batches * samples_per_batch)
 
         # display the epoch training loss
         print(f"epoch : {epoch + 1}/{cli_args.epochs}, loss = {loss:.6f}")
         losses.append(loss)
+
+        if validate:
+            y_time_delayed_val, y_true = next(val_batch_iterator)
+            if cli_args.gpu:
+                time_delayed_ys.to(device)
+                y_true.to(device)
+
+            g_pred, y_pred = lkis(y_time_delayed_val)
+            g_0 = g_pred[:-1]
+            g_1 = g_pred[1:]
+
+            batch_loss = combined_loss(y_pred=y_pred, y_true=y_true, g_0=g_0, g_1=g_1)
+            val_loss = batch_loss.item()
+            print(f"\tval-loss  = {val_loss:.6f}")
+            val_losses.append(val_loss)

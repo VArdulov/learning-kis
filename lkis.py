@@ -2,9 +2,10 @@
 # coding: utf-8
 import numpy as np
 from torch import from_numpy
-from torch.nn import Module, Linear, PReLU
+from torch.nn import Module, Linear, PReLU, BatchNorm1d
 
 from typing import Tuple
+from logging import warning
 
 
 class TimeSeriesBatchMaker(object):
@@ -78,11 +79,13 @@ class Observer(Module):
         n_hidden = ((latent_dim + observable_dim) // 2) + ((latent_dim + observable_dim) % 2)
         self.linear_1 = Linear(latent_dim, n_hidden)
         self.prelu = PReLU()
+        self.batch_norm = BatchNorm1d(n_hidden)
         self.linear_2 = Linear(n_hidden, observable_dim)
 
     def forward(self, x):
         x_hat = self.linear_1(x)
         x_hat = self.prelu(x_hat)
+        x_hat = self.batch_norm(x_hat)
         return self.linear_2(x_hat)
 
 
@@ -97,7 +100,7 @@ class KoopmanInvariantSubspaceLearner(Module):
         )
         self.intermediate_observable_dim = intermediate_observable if intermediate_observable > 0 else latent_dim
         if intermediate_observable <= 0:
-            print(f"Overwriting intermediate_observable dimension from {intermediate_observable} "
+            warning(f"Overwriting intermediate_observable dimension from {intermediate_observable} "
                   f"to {self.intermediate_observable_dim}")
         self.observer = Observer(latent_dim=latent_dim, observable_dim=self.intermediate_observable_dim)
         self.reconstructor = Observer(latent_dim=self.intermediate_observable_dim, observable_dim=observable_dim)
