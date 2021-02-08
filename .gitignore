@@ -1,3 +1,6 @@
 __pycache__/
 old/
 exp_*/result*/
+.idea
+notebooks/.ipynb_checkpoints
+*.mdl
