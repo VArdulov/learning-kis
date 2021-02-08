@@ -38,6 +38,9 @@ parser.add_argument("--alpha", "-a", type=float, default=1.0, help="value to sco
 parser.add_argument("--learning-rate", "-r", type=float, default=0.001, help="Optimizer learning rate")
 parser.add_argument("--validation-data-path", "-v", type=str, default="")
 
+#ToDo: Implement
+parser.add_argument("--dmd", action="store_true", default=False, help="Execute and save the DMD on the training set")
+
 if __name__ == "__main__":
     # grab the command line arguments
     cli_args = parser.parse_args()
