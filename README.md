@@ -32,58 +32,16 @@ pip install -r requirements.txt
 	- Script for test by prediction based on a trained model.
 * `exp_lorenz`
 	- Root directory for experiment using Lorenz series. Dataset is included here.
-* `matlab/`
-	- MATLAB tools.
-
-
-## Usage
-
-```
-python train.py [name] [options]
-python predict.py [name] [options]
-```
-
-`[name]` specifies the name of the experiment.
 
 ### Example
 
 ```
-python train.py lorenz --numval 1 --delay 7 --dimobs 5
-python predict.py lorenz --save
+python train.py train.py --l 7 --i 5
 ```
-
-The result can be inspected using `matlab/exp_lorenz.m`
 
 ## Important options
 
 ### train.py
-
-* `--rootdir`
-	- Root directory of an experiment. Data and results must be stored under this directory.
-* `--datadir`
-	- Name of the directory (under the root directory of the experiment) that contains datasets.
-* `--outputdir`
-	- Name of the directory (under the root directory of the experiment) where results will be stored.
-* `--numtrain`
-	- Number of training dataset files. If not specified, only one dataset file `train.txt` is used. If specified with 2, for example, `train_0.txt` and `train_1.txt` are used.
-* `--numval`
-	- Number of validation dataset files. If not specified, no validation dataset is used. If specified with 1, `val.txt` is used. If specified with 2, for example, `val_0.txt` and `val_1.txt` are used.
-* `--delay`
-	- Dimensionality of delay coordinates. $k$ in the paper.
-* `--dimemb`
-	- Dimensionality of the delay embedding. $p$ in the paper.
-* `--dimobs`
-	- Dimensionality of the learned observable. $n$ in the paper.
-* `--epoch`
-	- Number of epochs for SGD.
-
-### predict.py
-
-* `--numtest`
-	- Similar to `--numval`.
-* `--horizon`
-	- Timestep horizon to which prediction is calculated.
-* `--save`
 
 ## Author
 
